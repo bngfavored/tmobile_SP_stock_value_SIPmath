@@ -25,7 +25,7 @@ from bokeh.models import CustomJS
 from streamlit_bokeh_events import streamlit_bokeh_events
 from microprediction import MicroWriter
 warnings.filterwarnings('ignore')
-main_title = 'Minutes Ahead Stochastic Stock Value Predictions'
+main_title = 'Minutes Ahead Stochastic Google Stock Value Predictions'
 st.set_page_config(page_title=f"microprediction: {main_title}", page_icon=None,
                    layout="wide", initial_sidebar_state="auto", menu_items=None)
 
