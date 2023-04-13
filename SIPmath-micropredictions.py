@@ -23,8 +23,10 @@ from microprediction import MicroReader
 from bokeh.models.widgets import Button
 from bokeh.models import CustomJS
 from streamlit_bokeh_events import streamlit_bokeh_events
+from microprediction import MicroWriter
 warnings.filterwarnings('ignore')
-st.set_page_config(page_title="microprediction: One Hour Ahead Stochastic Wind-Speed Predictions", page_icon=None,
+main_title = 'Minutes Ahead Stochastic Stock Value Predictions'
+st.set_page_config(page_title=f"microprediction: {main_title}", page_icon=None,
                    layout="wide", initial_sidebar_state="auto", menu_items=None)
 
 
@@ -32,7 +34,7 @@ st.set_page_config(page_title="microprediction: One Hour Ahead Stochastic Wind-S
 def get_base64_of_bin_file(bin_file):
     with open(bin_file, 'rb') as f:
         data = f.read()
-    return base64.b64encode(data).decode()
+    return base64.b64encode(data).decode()          
 
 
 @st.cache(allow_output_mutation=True)
@@ -138,7 +140,7 @@ images_cols = images_container.columns([5, 9])
 # images_cols[2].image(SIPmath_Standard, unsafe_allow_html=True)
 # images_cols[0].markdown(PM_logo, unsafe_allow_html=True)
 # images_cols[4].markdown(Metalog_Distribution, unsafe_allow_html=True)
-images_cols[1].header("One Hour Ahead Stochastic Wind-Speed Predictions")
+images_cols[1].header(main_title)
 images_cols[1].markdown('''
     <p class="sub-font">If you can measure it, consider it predicted in real time.</p>''', unsafe_allow_html=True)
 # images_cols[3].markdown(HDR_Generator, unsafe_allow_html=True)
@@ -170,6 +172,25 @@ graphs_container_main = st.empty().container()
 #     unsafe_allow_html=True,
 # )
 
+CYMBALO_COYOTE="e0a0c29acbf143899df20a20ceaf3556"
+mw = MicroWriter(write_key=CYMBALO_COYOTE)
+stream_name = 'quick_yarx_goog.json'
+samples = mw.get_own_predictions(name=stream_name,delay=mw.DELAYS[-1], strip=True, consolidate=True)
+
+def remove_outliers(data):
+    # Calculate the first and third quartiles (Q1 and Q3)
+    Q1 = np.percentile(data, 25)
+    Q3 = np.percentile(data, 75) 
+    # Calculate the interquartile range (IQR)
+    IQR = Q3 - Q1
+    # Define the bounds for outliers
+    lower_bound = Q1 - 3.5 * IQR
+    upper_bound = Q3 + 3.5 * IQR
+    # Remove outliers and retain data within the bounds
+    filtered_data = [x for x in data if lower_bound <= x <= upper_bound]
+    return filtered_data
+
+inliers = pd.DataFrame(remove_outliers(samples), columns=['stock_value'])
 
 def plot(m, big_plots=None, csv=None, term=None, name=None, key=None):
     # st.write(m)
@@ -465,11 +486,13 @@ def plot(m, big_plots=None, csv=None, term=None, name=None, key=None):
                     plt.rcParams["figure.figsize"] = [7.00, 3.50]
                     plt.rcParams["figure.autolayout"] = True
                     im = plt.imread(path+'/images/SIPmath Standard Certified.png') # insert local path of the image.
-                    ax.plot(InitialResults[str(i) + ' Terms']['quantileValues'], InitialResults[str(i) + ' Terms']['pdfValues'],
-                               linewidth=2, c='darkblue')
+                    ax.plot(InitialResults[str(i) + ' Terms']['quantileValues'], 
+                                InitialResults[str(i) + ' Terms']['pdfValues'],
+                                linewidth=2, 
+                                c='darkblue')
                     ax.patch.set_facecolor('white')
                     ax.axes.yaxis.set_ticks([])
-                    ax.set(title='Wind Speed in 1 Hour')
+                    ax.set(title='ER Wait Time in Minutes', xlabel='Minutes')
                     newax = fig.add_axes([0.5,0.5,0.5,0.5], anchor=(0.59, 0.15), zorder=1)
                     newax.imshow(im)
                     newax.axis('off')
@@ -514,7 +537,7 @@ def plot(m, big_plots=None, csv=None, term=None, name=None, key=None):
                 #     # ax[1].set(title=chart_title, ylabel='CDF',
                 #     #           xlabel='Quantiles')
             plt.tight_layout(rect=[0, 0, 0.75, 1])
-            # graphs_container.subheader('Wind Speed in 1 Hour')
+            # graphs_container.subheader('ER Wait Time in 1 Hour')
             graphs_container.pyplot(plt)
             if st.session_state['mfitted'][key][name]['plot']['big plot'] is None:
                 temp_img = io.BytesIO()
@@ -665,6 +688,7 @@ def preprocess_charts(x,
             'boundedness': boundedness, 'terms': user_term, 'bounds': bounds}}
     print("user term is", user_term)
     # Create graphs
+    # ~~~~~~Metalog Data~~~~~~~
     # st.write(st.session_state['mfitted'][key][name]['fit'].keys())
     # st.write(type(st.session_state['mfitted'][key][name]['fit']))
     # st.write(st.session_state['mfitted'][key][name]['fit']['M'])
@@ -689,6 +713,21 @@ def get_micropredictions():
     predictions = mr.get_predictions(name=NAME,write_key=HAMOOSE_CHEETAH,delay=mr.DELAYS[-1])
     print(predictions)
     return predictions
+
+def get_stock_value():
+    #	https://api.microprediction.org/live/hospital-er-wait-minutes-piedmont_mountside_ellijay.json
+    stock_value_lagged_url = "https://api.microprediction.org/lagged/quick_yarx_googl.json"
+    r = requests.get(stock_value_lagged_url, timeout=30)
+    if r.ok:
+        stock_value_json = r.json()
+        stock_value_df = pd.DataFrame(stock_value_json, columns=['timeStamp','stock_value'])
+        print(stock_value_df)
+        return stock_value_df[['stock_value']]
+        # return stock_value_df.loc[((stock_value_df['timeStamp'] >= (stock_value_df['timeStamp'][0] - 86400)) & (stock_value_df['stock_value'] > 0)), ['stock_value']]
+        # return stock_value_df.loc[((stock_value_df['timeStamp'] >= (stock_value_df['timeStamp'][0] - 1*86400))), ['stock_value']]
+    else:
+        return pd.DataFrame()
+
 
 def sent_to_pastebin(filename, file):
     payload = {"api_dev_key": '7lc7IMiM_x5aMUFFudCiCo35t4o0Sxx6',
@@ -1743,18 +1782,24 @@ def input_data(name, i, df, probs=None):
 #         # pass
 #     input_data("Unknown", 0, pd_data, pd_data.index.to_list())
 # elif data_type == 'API':
-col_name = 'wind_speed'
-micro_data = get_micropredictions()
-micro_data_df = pd.DataFrame([ p for p in micro_data if p > 0.01 ], columns=[col_name])
+col_name = 'Stock_Value'
+# micro_data = get_micropredictions()
+# micro_data_df = pd.DataFrame([ p for p in micro_data if p > 0.01 ], columns=[col_name])
+micro_data_df = inliers
+# micro_data_df = get_nyc_data()
+# print(micro_data_df.dtypes)
+print(micro_data_df.dtypes)
 name = micro_data_df.columns[0]
 # table_container.subheader(f"Preview for {name}")
 # table_container.write(micro_data_df[:10].to_html(
 #     index=False), unsafe_allow_html=True)
 probs=np.nan
-boundedness='u'
-bounds=[0, 1]
+boundedness='b'
+# bounds=[micro_data_df.iloc[:,0].min()]
+bounds=[micro_data_df.iloc[:,0].min()-0.01, 1.25*micro_data_df.iloc[:,0].max()]
+# bounds=[0, 1]
 big_plots=True
-user_terms=5
+user_terms=3
 graphs=False
 dependence = 'independent'
 file_name = f'{name}.SIPmath'
@@ -1796,7 +1841,7 @@ no_event = streamlit_bokeh_events(
     events="GET_TEXT",
     key="get_text",
     refresh_on_update=True,
-    override_height=75,
+    override_height=50,
     debounce_time=0)
 # if text_container.button(f'Display {file_name}'):
 #     text_container.text("Mouse over the text then click on the clipboard icon to copy to your clipboard.")
