@@ -1794,7 +1794,7 @@ name = micro_data_df.columns[0]
 # table_container.write(micro_data_df[:10].to_html(
 #     index=False), unsafe_allow_html=True)
 probs=np.nan
-boundedness='b'
+boundedness='u'
 # bounds=[micro_data_df.iloc[:,0].min()]
 bounds=[micro_data_df.iloc[:,0].min()-0.01, 1.25*micro_data_df.iloc[:,0].max()]
 # bounds=[0, 1]
