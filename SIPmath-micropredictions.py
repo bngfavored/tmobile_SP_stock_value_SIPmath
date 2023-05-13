@@ -651,7 +651,7 @@ micro_data_df.index = [0.25, 0.5, 0.75]
 # micro_data_df = get_nyc_data()
 # print(micro_data_df.dtypes)
 # print(micro_data_df.dtypes)
-micro_data_df.columns = micro_data_df.columns.str.replace(' |&', '_')
+micro_data_df.columns = micro_data_df.columns.str.replace(' |&|-', '_')
 name = micro_data_df.columns[-1]
 seeds = [
             {
