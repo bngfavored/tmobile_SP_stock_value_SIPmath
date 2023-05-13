@@ -25,7 +25,7 @@ from bokeh.models import CustomJS
 from streamlit_bokeh_events import streamlit_bokeh_events
 from microprediction import MicroWriter
 warnings.filterwarnings('ignore')
-sipmath_name = "T-Moblie Stock Value"
+sipmath_name = "T-Mobile Stock Value"
 stock_stream_name = 'quick_yarx_tmo.json'
 corr = 0.51
 var_id = 2
